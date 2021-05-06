@@ -5,7 +5,11 @@ inspired from -> https://github.com/saiguy3/piece_table and without a Java imple
 
 The only difference is that the "original" and the "added" buffers are stored externally in the same location
 it has also been modified to work with any arbitrary byte streams. My intuition for the PieceTable is
-that it is easier to reorganize a description of the data than the actual data.
+that it is easier to reorganize a description of the data than the actual data. We always append the data to the end
+of the buffer and do the expensive splice operation only on the description. 
+Even though dynamic set operations add and find are linear time it is sufficiently negligible because
+they potentially operate on exponentially smaller amounts of bytes to complete.
+
 
 for example we could use integer arrays with the PieceTable
 
@@ -30,6 +34,8 @@ file.write("hello".getBytes());
 pieceTable.add_original(5);
 System.out.println(new String(pieceTable.find(0, pieceTable._text_len)));
 
+output: "hello"
+
 to make additions
 
 for(int i=2;i<5;i++){
@@ -37,6 +43,7 @@ for(int i=2;i<5;i++){
    file.write("goodbye".getBytes());
    pieceTable.add("goodbye".length(),i);
 }
+System.out.println(new String(pieceTable.find(0, pieceTable._text_len)));
 
 output: "hegggoodbyeoodbyeoodbyello"
 
