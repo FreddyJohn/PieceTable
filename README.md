@@ -8,7 +8,7 @@ it has also been modified to work with any arbitrary byte streams. My intuition 
 that it is easier to reorganize a description of the data than the actual data. We always append the data to the end
 of the buffer and do the expensive splice operation only on the description. 
 Even though dynamic set operations add, find, and remove are linear time it is sufficiently negligible because
-they potentially operate on exponentially smaller amounts of bytes to complete.
+they potentially operate on exponentially smaller amounts of bytes to complete in comparsion to actual data.
 
 
 for example we could use integer arrays with the PieceTable
