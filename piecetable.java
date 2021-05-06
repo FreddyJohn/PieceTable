@@ -128,7 +128,6 @@ public class PieceTableAPI implements Serializable{
     }
     public byte[] find(long index,long length){
         if(length<0){
-            System.out.println("dick");
             return find(index+length, -length);
         }
         ByteBuffer doc = ByteBuffer.allocate((int) length);
