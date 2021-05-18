@@ -12,15 +12,16 @@ import java.util.logging.Logger;
  *
  * @author Nick
  * 
- * PieceTable modified to have only one buffer and to work with any
- * arbitrary byte stream
+ * PieceTable modified to have only one in RAM buffer, to work with any
+ * arbitrary byte stream, and ability to set maximum piece length
  * 
  * 
  */
 public class PieceTableAPI implements Serializable{
-    public static long _text_len;
-    private static ArrayList<_Piece> pieces;
-    private static RandomAccessFile _edits;
+    public  long _text_len;
+    public  ArrayList<_Piece> pieces;
+    private  RandomAccessFile _edits;
+    private int max_piece_length;
     public PieceTableAPI(String editPath){
         pieces = new ArrayList<>();
         try {
@@ -33,7 +34,15 @@ public class PieceTableAPI implements Serializable{
         }
         
     }
-    public static long get_length(RandomAccessFile f){
+    public void set_max_piece_length(int max){
+        this.max_piece_length = max;
+    }
+    public void print_pieces(){
+        this.pieces.forEach((piece) -> {
+            System.out.println(piece.in_added+","+piece.length+","+piece.offset);
+        });
+    }
+    public long get_length(RandomAccessFile f){
         long length=0;
         try {
             length= f.length();
@@ -63,7 +72,7 @@ public class PieceTableAPI implements Serializable{
         }
         return list;
     }
-    private static Pair get_pieces_and_offset(long index){
+    private Pair get_pieces_and_offset(long index){
         if (index<0){
            return null;
         }
@@ -80,11 +89,35 @@ public class PieceTableAPI implements Serializable{
         }
         return null;
     }
-    public void add_original(int length){
-        _text_len = length;
-        pieces.add(new _Piece(false,0,length));
+
+    public void add(int index, int length){
+        if(length - max_piece_length <= max_piece_length && length - max_piece_length > 0){
+            _add(max_piece_length, index);
+            _add((length - max_piece_length),index+max_piece_length);
+        }
+        else{
+            _add(max_piece_length, index);
+            for(int piece = max_piece_length; piece<length; piece+=max_piece_length){
+                _add(max_piece_length, index+piece);
+            }            
+            if (length % max_piece_length != 0){
+                _add(length % max_piece_length, index + length - (length % max_piece_length));
+            }     
+        }
     }
-    public void add(int length,int index){
+    
+    public void add_original(int length){
+        if (length>max_piece_length){
+            _text_len = max_piece_length;
+            pieces.add(new _Piece(false,0,max_piece_length));
+            add(max_piece_length,length);
+        }
+        else if(max_piece_length>=length){
+            _text_len = length;
+            pieces.add(new _Piece(false,0,length));
+        }
+    }
+    private void _add(int length, int index){
         if (length==0){
             return;
         }
@@ -110,10 +143,9 @@ public class PieceTableAPI implements Serializable{
     public byte[] get_text(){
         ByteBuffer doc = ByteBuffer.allocate((int) _text_len);
         pieces.forEach((piece) -> {
-            doc.put(get_chunk(_edits,piece.offset,piece.offset+piece.length));
+            doc.put(get_chunk(_edits, piece.offset, piece.offset + piece.length));
         });
         return doc.array();
-        
     }
     private byte[] get_chunk(RandomAccessFile file,long start,long stop){
         long length = stop-start;
@@ -200,15 +232,15 @@ public class PieceTableAPI implements Serializable{
         int delete_count = stop_piece_index - start_piece_index + 1;
         pieces = splice(start_piece_index,delete_count,delete_pieces);
     }
-    }
-class _Piece{
-    public boolean in_added;
-    public long offset;
-    public long length;
-    public _Piece(boolean in_added,long offset, long length){
-        this.in_added=in_added;
-        this.offset=offset;
-        this.length =length;
+       public static class _Piece{
+        public boolean in_added;
+        public long offset;
+        public long length;
+        public _Piece(boolean in_added, long offset, long length){
+            this.in_added=in_added;
+            this.offset=offset;
+            this.length=length;
+        }
     }
 }
 class Pair<U, V>
