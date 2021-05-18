@@ -11,42 +11,6 @@ Even though dynamic set operations add, find, and remove are linear time it is s
 they potentially operate on exponentially smaller amounts of bytes to complete in comparsion to actual data.
 
 
-for example we could use integer arrays with the PieceTable
-
-String path = "yourfilePath";
-pieceTable = new PieceTable(path);
-RandomAccessFile file = new RandomAccessFile(path,"rw");
-byte[] int_bytes = new byte[40]; // 4 bytes for each int
-ByteBuffer.wrap(int_bytes).order(ByteOrder.LITTLE_ENDIAN).asIntBuffer().put(new int[]{1,2,3,4,5,6,7,8,9,10});
-file.write(int_bytes);
-pieceTable.add_original(40);
-byte[] bytes = pieceTable.find(0, pieceTable._text_len);
-int[] ints = new int[bytes.length/4];
-ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asIntBuffer().get(ints);
-for(int i: ints)
-{
-   System.out.println(i);
-}
-
-we can also use String
-
-file.write("hello".getBytes());
-pieceTable.add_original(5);
-System.out.println(new String(pieceTable.find(0, pieceTable._text_len)));
-
-output: "hello"
-
-to make additions
-
-for(int i=2;i<5;i++){
-   file.seek(pieceTable._text_len);
-   file.write("goodbye".getBytes());
-   pieceTable.add("goodbye".length(),i);
-}
-System.out.println(new String(pieceTable.find(0, pieceTable._text_len)));
-
-output: "hegggoodbyeoodbyeoodbyello"
-
 
 here are some more great resources on sequence data structures!
 
