@@ -91,26 +91,23 @@ public class PieceTableAPI implements Serializable{
     }
 
     public void add(int index, int length){
+        if (length<=0){
+            return;
+        }
         _add(max_piece_length, index);
         for(int piece = max_piece_length; piece<length; piece+=max_piece_length){
             _add(max_piece_length, index+piece);
         }            
         if (length % max_piece_length != 0){
             _add(length % max_piece_length, index + length - (length % max_piece_length));
-        }   
+        }      
+    }
+    public void add_original(int length){
+        _text_len = max_piece_length;
+        pieces.add(new _Piece(false,0,max_piece_length));
+        add(max_piece_length,length);
     }
     
-    public void add_original(int length){
-        if (length>max_piece_length){
-            _text_len = max_piece_length;
-            pieces.add(new _Piece(false,0,max_piece_length));
-            add(max_piece_length,length);
-        }
-        else if(max_piece_length>=length){
-            _text_len = length;
-            pieces.add(new _Piece(false,0,length));
-        }
-    }
     private void _add(int length, int index){
         if (length==0){
             return;
