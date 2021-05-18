@@ -17,12 +17,12 @@ import java.util.logging.Logger;
  * 
  * 
  */
-public class PieceTableAPI implements Serializable{
+public class PieceTable implements Serializable{
     public  long _text_len;
     public  ArrayList<_Piece> pieces;
     private  RandomAccessFile _edits;
     private int max_piece_length;
-    public PieceTableAPI(String editPath){
+    public PieceTable(String editPath){
         pieces = new ArrayList<>();
         try {
             _edits = new RandomAccessFile(editPath,"rw");
