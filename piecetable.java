@@ -1,5 +1,4 @@
-package piecetree;
-import java.io.FileNotFoundException;
+package piecetable;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.io.Serializable;
@@ -20,23 +19,12 @@ import java.util.logging.Logger;
 public class PieceTable implements Serializable{
     public  long _text_len;
     public  ArrayList<_Piece> pieces;
-    private  RandomAccessFile _edits;
-    private int max_piece_length;
-    public PieceTable(String editPath){
+    private final int max_piece_length;
+    public PieceTable(int max){
         pieces = new ArrayList<>();
-        try {
-            _edits = new RandomAccessFile(editPath,"rw");
-            _edits.setLength(0);
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(PieceTableAPI.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IOException ex) {
-            Logger.getLogger(PieceTableAPI.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        
-    }
-    public void set_max_piece_length(int max){
         this.max_piece_length = max;
     }
+
     public void print_pieces(){
         this.pieces.forEach((piece) -> {
             System.out.println(piece.in_added+","+piece.length+","+piece.offset);
@@ -47,7 +35,7 @@ public class PieceTable implements Serializable{
         try {
             length= f.length();
         } catch (IOException ex) {
-            Logger.getLogger(PieceTableAPI.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(PieceTable.class.getName()).log(Level.SEVERE, null, ex);
         }
         return length;
     }
@@ -89,28 +77,36 @@ public class PieceTable implements Serializable{
         }
         return null;
     }
-
-    public void add(int index, int length){
-        if (length<=0){
-            return;
-        }
-        _add(max_piece_length, index);
+    /*
+    public PieceTable add(int index, int length){
+        //if (length<=0){
+        //    return this;
+        //}
+        //_add(max_piece_length, index);
         for(int piece = max_piece_length; piece<length; piece+=max_piece_length){
             _add(max_piece_length, index+piece);
         }            
         if (length % max_piece_length != 0){
             _add(length % max_piece_length, index + length - (length % max_piece_length));
-        }      
+        }
+        return this;
     }
+    */
+
+    //public void add_original(int length){
+    //    _text_len = max_piece_length;
+    //    pieces.add(new _Piece(false,0,max_piece_length));
+    //    add(max_piece_length,length);
+    //}  
+   
     public void add_original(int length){
-        _text_len = max_piece_length;
-        pieces.add(new _Piece(false,0,max_piece_length));
-        add(max_piece_length,length);
-    }
-    
-    private void _add(int length, int index){
+        _text_len = length;
+        pieces.add(new _Piece(false,0,length));
+    }  
+    public PieceTable add(int length,int index){
+    //public void _add(int length,int index){
         if (length==0){
-            return;
+            return this;
         }
         Pair pair = get_pieces_and_offset(index);
         int piece_index = (int) pair.first;
@@ -120,18 +116,17 @@ public class PieceTable implements Serializable{
         _text_len += length;
         if (curr_piece.in_added && piece_offset == curr_piece.offset + (curr_piece.length == added_offset ? 1:0)){
             curr_piece.length += length;
-            return;
+            return this;
         }
         ArrayList<_Piece> insert_pieces = new ArrayList<>();
         insert_pieces.add(new _Piece(curr_piece.in_added,curr_piece.offset, piece_offset - curr_piece.offset));
         insert_pieces.add(new _Piece(true, added_offset, length));
-        insert_pieces.add(new _Piece(curr_piece.in_added,piece_offset,curr_piece.length-(piece_offset - curr_piece.offset)));  
-        insert_pieces =filter(insert_pieces);   
+        insert_pieces.add(new _Piece(curr_piece.in_added,piece_offset,curr_piece.length-(piece_offset - curr_piece.offset)));
+        insert_pieces =filter(insert_pieces);
         pieces = splice(piece_index,1,insert_pieces);
-
-        
+        return this;
     }
-    public byte[] get_text(){
+    public byte[] get_text(RandomAccessFile _edits){
         ByteBuffer doc = ByteBuffer.allocate((int) _text_len);
         pieces.forEach((piece) -> {
             doc.put(get_chunk(_edits, piece.offset, piece.offset + piece.length));
@@ -145,13 +140,13 @@ public class PieceTable implements Serializable{
             file.seek(start);
             file.read(bytes,0, (int) length);
         } catch (IOException ex) {
-            Logger.getLogger(PieceTableAPI.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(PieceTable.class.getName()).log(Level.SEVERE, null, ex);
         }
         return bytes;
     }
-    public byte[] find(long index,long length){
+    public byte[] find(long index,long length,RandomAccessFile _edits){
         if(length<0){
-            return find(index+length, -length);
+            return find(index+length, -length, _edits);
         }
         ByteBuffer doc = ByteBuffer.allocate((int) length);
         Pair start_pair = get_pieces_and_offset(index);
@@ -180,9 +175,9 @@ public class PieceTable implements Serializable{
         }
         return doc.array();
     }
-    public void remove(long index, long length) {
+    public PieceTable remove(long index, long length) {
         if(length==0){
-            return;
+            return this;
         }
         if(length<0){
             remove(index+length,-length);
@@ -191,7 +186,7 @@ public class PieceTable implements Serializable{
             try {
                 throw new Exception("Index out of Bounds");
             } catch (Exception ex) {
-                Logger.getLogger(PieceTableAPI.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(PieceTable.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
         Pair start_pair = get_pieces_and_offset(index);
@@ -199,31 +194,31 @@ public class PieceTable implements Serializable{
         int start_piece_index=(int)start_pair.first;
         long start_piece_offset=(long)start_pair.second;
         int stop_piece_index=(int)stop_pair.first;
-        long stop_piece_offset=(long)stop_pair.second; 
+        long stop_piece_offset=(long)stop_pair.second;
         _text_len -= length;
         if (start_piece_index == stop_piece_index){
             _Piece piece = pieces.get(start_piece_index);
             if (start_piece_offset==piece.offset){
                 piece.offset+=length;
                 piece.length-=length;
-                return;
+                return this;
             }
             else if (stop_piece_offset == piece.offset+piece.length){
                 piece.length-=length;
-                return;
+                return this;
             }
         }
         _Piece start_piece = pieces.get(start_piece_index);
         _Piece end_piece = pieces.get(stop_piece_index);
         ArrayList<_Piece> delete_pieces = new ArrayList<>();
         delete_pieces.add(new _Piece(start_piece.in_added,start_piece.offset, start_piece_offset - start_piece.offset));
-        delete_pieces.add(new _Piece(end_piece.in_added, stop_piece_offset, end_piece.length -(stop_piece_offset-end_piece.offset))); 
-        
+        delete_pieces.add(new _Piece(end_piece.in_added, stop_piece_offset, end_piece.length -(stop_piece_offset-end_piece.offset)));
         delete_pieces = filter(delete_pieces);
         int delete_count = stop_piece_index - start_piece_index + 1;
         pieces = splice(start_piece_index,delete_count,delete_pieces);
+        return this;
     }
-       public static class _Piece{
+       public static class _Piece implements Serializable{
         public boolean in_added;
         public long offset;
         public long length;
@@ -234,7 +229,7 @@ public class PieceTable implements Serializable{
         }
     }
 }
-class Pair<U, V>
+class Pair<U, V> implements Serializable
 {
     public final U first;     
     public final V second;
