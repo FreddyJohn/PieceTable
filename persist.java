@@ -15,20 +15,25 @@ import java.util.logging.Logger;
  * @author Nick
  */
 public class persist {
+    private String originalPath;
     private String objectPath;
     private String editPath;
     private RandomAccessFile persistent_object;
+    private RandomAccessFile originalPiece;
     private RandomAccessFile _edits;
     private PieceTable pieceTable;
     public long _text_len;
     private int max;
-    public persist(String oPath,String ePath, int max) {
+    public persist(String oPath,String ePath,String origPath, int max) {
+        this.originalPath = origPath;
         this.objectPath = oPath;
         this.editPath = ePath;
         this.max = max;
         try {
             persistent_object = new RandomAccessFile(objectPath,"rw");
+            originalPiece = new RandomAccessFile(originalPath,"rw");
             _edits = new RandomAccessFile(editPath, "rw");
+            originalPiece.setLength(0);
             _edits.setLength(0);
             persistent_object.setLength(0);
         } catch (FileNotFoundException ex) {
@@ -44,19 +49,19 @@ public class persist {
         serialize();
     }
 
-    public void add(int length, int index) {
+    public void add(int length, int index,RandomAccessFile edits) {
         pieceTable = deserialize();
-        pieceTable.add(length,index);
+        pieceTable.add(length,index,edits);
         _text_len = pieceTable._text_len;
         serialize();
     }
 
     public byte[] get_text() {
-        return pieceTable.get_text(_edits);
+        return pieceTable.get_text(_edits,originalPiece);
     }
 
     public byte[] find(long index, long length) {
-        return pieceTable.find(index,length,_edits);
+        return pieceTable.find(index,length,_edits,originalPiece);
     }
     public void remove(long index, long length) {
         pieceTable = deserialize();
