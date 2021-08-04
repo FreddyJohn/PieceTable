@@ -11,21 +11,17 @@ import java.util.logging.Logger;
  *
  * @author Nick
  * 
- * PieceTable modified to have only one in RAM buffer, to work with any
- * arbitrary byte stream, and ability to set maximum piece length
+ * PieceTable modified to work with in RAM buffer and any
+ * arbitrary byte stream
  * 
  * 
  */
 public class PieceTable implements Serializable{
     public  long _text_len;
     public  ArrayList<_Piece> pieces;
-    private long original_length;
-    private final int max_piece_length;
-    public PieceTable(int max){
+    public PieceTable(){
         pieces = new ArrayList<>();
-        this.max_piece_length = max;
     }
-
     public void print_pieces(){
         this.pieces.forEach((piece) -> {
             System.out.println(piece.in_added+","+piece.length+","+piece.offset);
@@ -76,19 +72,16 @@ public class PieceTable implements Serializable{
     }
     public void add_original(int length){
         _text_len = length;
-        original_length = length;
         pieces.add(new _Piece(false,0,length));
     }
     public PieceTable add(int length,int index, RandomAccessFile edits){
         if (length==0){
             return this;
         }
-        
         Pair pair = get_pieces_and_offset(index);
         int piece_index = (int) pair.first;
         long piece_offset= (long) pair.second;
         _Piece curr_piece = pieces.get(piece_index);
-
         long added_offset =0;
         try {
             added_offset = edits.length() - length;
@@ -96,7 +89,6 @@ public class PieceTable implements Serializable{
             Logger.getLogger(PieceTable.class.getName()).log(Level.SEVERE, null, ex);
         }
         _text_len += length;
-
 
         if (curr_piece.in_added && piece_offset == curr_piece.offset + (curr_piece.length == added_offset ? 1:0)){
             curr_piece.length += length;
@@ -143,8 +135,10 @@ public class PieceTable implements Serializable{
         long start_piece_offset=(long)start_pair.second;
         int stop_piece_index=(int)stop_pair.first;
         long stop_piece_offset=(long)stop_pair.second;
+        
         _Piece start_piece = pieces.get(start_piece_index);
-        RandomAccessFile buffer = _edits;
+        RandomAccessFile buffer = start_piece.in_added ? _edits : origPiece;
+        
         if(start_piece_index==stop_piece_index){
             doc.put(get_chunk(buffer,start_piece_offset,start_piece_offset + length));
         }
@@ -152,6 +146,7 @@ public class PieceTable implements Serializable{
             doc.put(get_chunk(buffer,start_piece_offset,start_piece.offset + start_piece.length));
             for(int i =start_piece_index+1;i<stop_piece_index+1;i++){
                 _Piece cur_piece=pieces.get(i);
+                buffer = cur_piece.in_added ? _edits : origPiece;
                 if (i==stop_piece_index){
                     doc.put(get_chunk(buffer,cur_piece.offset,stop_piece_offset));
                 }
