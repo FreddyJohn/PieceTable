@@ -15,7 +15,9 @@ The member variables for the new Edit object should be intialized with the lengt
 here are some more great resources on sequence data structures!
 
 The Craft of Text Editing -> http://www.finseth.com/craft/
+
 Data Structures for Text Editors 1998 -> https://www.cs.unm.edu/~crowley/papers/sds.pdf
+
 A Fast Data Structure for Disk-Based Audio Editing -> https://www.cs.cmu.edu/~rbd/papers/audacity-icmc2001.pdf
 
 
