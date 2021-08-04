@@ -9,6 +9,8 @@ of the buffer and do the expensive splice operation only on the description.
 Even though dynamic set operations add, find, and remove are linear time it is sufficiently negligible because
 they potentially operate on exponentially smaller amounts of bytes to complete in comparsion to actual data.
 
+Edits class can be used to implement Linear Undo Model by simply creating a new Edit then calling Edits.pushEdit(Edit edit)
+The member variables for the new Edit object should be intialized with the length and offset of the given addition/remove action
 
 
 here are some more great resources on sequence data structures!
