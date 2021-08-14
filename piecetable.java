@@ -11,7 +11,7 @@ import java.util.logging.Logger;
  *
  * @author Nick
  * 
- * PieceTable modified to have only one in RAM buffer, to work with any
+ * PieceTable modified to have only one in external memory buffer, to work with any
  * arbitrary byte stream, and ability to set maximum piece length
  * 
  * 
