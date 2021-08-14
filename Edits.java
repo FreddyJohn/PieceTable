@@ -31,15 +31,14 @@ import java.util.ArrayList;
 public class Edits{
     private final ArrayList<Edit> edits = new ArrayList<>();
     private ArrayList<Edit> redos = new ArrayList<>();
-    private Edit currentEdit;
-    private Edit currentRedo;
-    public int editIndex;
-    public int redoIndex;
+    public Edit currentEdit;
+    public Edit currentRedo;
+    public int editIndex = -1;
+    public int redoIndex = -1;
+    
     
     public void pushEdit(Edit newEdit){
         edits.add(newEdit);
-        redos = new ArrayList<>();
-        redoIndex= -1;
         editIndex+=1;
     }
     
@@ -48,41 +47,56 @@ public class Edits{
         editIndex+=1;
     }
     private void pop(){
-        edits.remove(editIndex-1);
+        edits.remove(editIndex);
         editIndex-=1;
     }
-    public persist undo(persist sequence, RandomAccessFile buffer){
+    public PieceTableAPI undo(PieceTableAPI sequence){
         if(editIndex>0){
-            currentEdit = edits.get(editIndex-1);
+            currentEdit = edits.get(editIndex);
             switch(currentEdit.editType)
             {
                 case "addition":
                     sequence.remove(currentEdit.offset,currentEdit.length);
                     break;
                 case "remove":
-                    sequence.add(currentEdit.offset,currentEdit.length,buffer);
+                    sequence.add(currentRedo.length,currentRedo.offset);
+                    break;
             }
+            
             redos.add(currentEdit);
             redoIndex+=1;
             pop();
         }
         return sequence;
     }
-    public persist redo(persist sequence, RandomAccessFile buffer){ 
+    public PieceTableAPI redo(PieceTableAPI sequence){ 
         if(redoIndex>=0){
             currentRedo = redos.get(redoIndex);
             switch(currentRedo.editType){
                 case "addition":
-                    sequence.add(currentRedo.length,currentRedo.offset, buffer);
+                    sequence.add(currentRedo.length,currentRedo.offset);
                     break;
                 case "remove":
                     sequence.remove(currentRedo.offset, currentRedo.length);
+                    break;
             }
             push(currentRedo);
             redos.remove(redoIndex); 
             redoIndex-=1;
         }
         return sequence;
+    }
+    public void printEdits(){
+        System.out.println("Edit Stack");
+        edits.forEach((edit) -> {
+            System.out.println("editType: "+edit.editType+", editOffset: "+edit.offset+", editLength: "+edit.length);
+        });
+    }
+    public void printRedo(){
+        System.out.println("Redo Stack");
+        redos.forEach((edit) -> {
+            System.out.println("editType: "+edit.editType+", editOffset: "+edit.offset+", editLength: "+edit.length);
+        });
     }
 }
 
