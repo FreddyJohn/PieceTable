@@ -11,18 +11,20 @@ import java.util.logging.Logger;
  *
  * @author Nick
  * 
- * PieceTable modified to work with in RAM buffer and any
- * arbitrary byte stream
+ * PieceTable modified to have only one in RAM buffer, to work with any
+ * arbitrary byte stream, and ability to set maximum piece length
  * 
  * 
  */
 public class PieceTable implements Serializable{
-    public  long _text_len;
-    public  ArrayList<_Piece> pieces;
+    public long byte_length;
+    public ArrayList<_Piece> pieces;
+    public long _index;
     public PieceTable(){
         pieces = new ArrayList<>();
     }
     public void print_pieces(){
+        System.out.println("PieceTable Pieces Stack");
         this.pieces.forEach((piece) -> {
             System.out.println(piece.in_added+","+piece.length+","+piece.offset);
         });
@@ -71,7 +73,7 @@ public class PieceTable implements Serializable{
         return null;
     }
     public void add_original(int length){
-        _text_len = length;
+        byte_length = length;
         pieces.add(new _Piece(false,0,length));
     }
     public PieceTable add(int length,int index, RandomAccessFile edits){
@@ -81,15 +83,11 @@ public class PieceTable implements Serializable{
         Pair pair = get_pieces_and_offset(index);
         int piece_index = (int) pair.first;
         long piece_offset= (long) pair.second;
-        _Piece curr_piece = pieces.get(piece_index);
-        long added_offset =0;
-        try {
-            added_offset = edits.length() - length;
-        } catch (IOException ex) {
-            Logger.getLogger(PieceTable.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        _text_len += length;
-
+        _Piece curr_piece = pieces.get(piece_index);        
+        _index+=length;
+        long added_offset = _index - length;
+        byte_length += length;
+        
         if (curr_piece.in_added && piece_offset == curr_piece.offset + (curr_piece.length == added_offset ? 1:0)){
             curr_piece.length += length;
             return this;
@@ -103,12 +101,14 @@ public class PieceTable implements Serializable{
         return this;
     }
     public byte[] get_text(RandomAccessFile _edits, RandomAccessFile _origPiece){
-        ByteBuffer doc = ByteBuffer.allocate((int) _text_len);
+        ByteBuffer doc = ByteBuffer.allocate((int) byte_length);
         pieces.forEach((piece) -> {
             if (piece.in_added){
                 doc.put(get_chunk(_edits, piece.offset, piece.offset + piece.length));
+                //System.out.println(piece.offset+" , "+piece.length);
             }else{
                 doc.put(get_chunk(_origPiece, piece.offset, piece.offset + piece.length));
+                //System.out.println(piece.offset+" , "+piece.length);
             }
         });
         return doc.array();
@@ -178,7 +178,8 @@ public class PieceTable implements Serializable{
         long start_piece_offset=(long)start_pair.second;
         int stop_piece_index=(int)stop_pair.first;
         long stop_piece_offset=(long)stop_pair.second;
-        _text_len -= length;
+        byte_length -= length;
+        _index -= length;
         if (start_piece_index == stop_piece_index){
             _Piece piece = pieces.get(start_piece_index);
             if (start_piece_offset==piece.offset){
